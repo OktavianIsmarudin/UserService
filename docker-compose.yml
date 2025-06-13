@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: user-service
+    volumes:
+      - ./:/var/www/html
+    environment:
+      DB_HOST: user-db
+      DB_DATABASE: userdb
+      DB_USERNAME: user
+      DB_PASSWORD: userpassword
+    networks:
+      - app-network
+    depends_on:
+      - user-db
+      - rabbitmq
+
+  user-nginx:
+    image: nginx:latest
+    container_name: user-nginx
+    ports:
+      - "8001:80"
+    volumes:
+      - ./:/var/www/html:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - user-service
+    networks:
+      - app-network
+
+  user-db:
+    image: mysql:8.0
+    container_name: user-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: userdb
+      MYSQL_USER: user
+      MYSQL_PASSWORD: userpassword
+    volumes:
+      - user-db-data:/var/lib/mysql
+    networks:
+      - app-network
+
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - app-network
+
+volumes:
+  user-db-data:
+
+networks:
+  app-network:
+    external: true
